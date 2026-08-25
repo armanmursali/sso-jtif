@@ -12,13 +12,9 @@ class SsoJtifServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Memuat rute autentikasi SSO bawaan package
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
-
-        // Memuat berkas konfigurasi bawaan package
         $this->mergeConfigFrom(__DIR__.'/../config/sso-jtif.php', 'sso-jtif');
 
-        // Mendaftarkan artisan command interaktif saat berjalan di konsol
         if ($this->app->runningInConsole()) {
             $this->commands([
                 SsoInstallCommand::class,
@@ -31,10 +27,13 @@ class SsoJtifServiceProvider extends ServiceProvider
     }
 
     /**
-     * Daftarkan binding kontainer jika diperlukan.
+     * Daftarkan binding kontainer.
      */
     public function register(): void
     {
-        // Pendaftaran layanan tambahan
+        // Daftarkan SsoManager ke container dengan key 'oauth-informatika'
+        $this->app->singleton('oauth-informatika', function ($app) {
+            return new SsoManager();
+        });
     }
 }
