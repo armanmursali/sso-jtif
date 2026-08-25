@@ -16,10 +16,10 @@ class SsoInstallCommand extends Command
     /**
      * Deskripsi dari perintah artisan.
      */
-    protected $description = 'Instalasi interaktif paket sso-jtif dengan verifikasi Client ID pusat dan pemilihan mode autentikasi.';
+    protected $description = 'Instalasi interaktif paket sso-jtif dengan verifikasi Client ID pusat dan penyalinan model tersentralisasi (Mode Full).';
 
     /**
-     * Eksekusi perintah utama dengan penanganan penyalinan model (Mode Full).
+     * Eksekusi perintah utama.
      */
     public function handle()
     {
@@ -62,11 +62,12 @@ class SsoInstallCommand extends Command
 
         $this->info("Mode yang dipilih: " . strtoupper($mode));
 
-        // Jika mode FULL dipilih, salin kerangka model tersentralisasi ke direktori klien dengan aman
+        // Model hanya disalin ke app/Models klien jika mode FULL dipilih secara eksplisit saat artisan sso:install berjalan
         if ($mode === 'full') {
-            $this->line('Menyiapkan kerangka model tersentralisasi dan API Trait di dalam proyek klien...');
+            $this->line('Menyiapkan penyalinan model tersentralisasi ke direktori proyek klien...');
 
-            $sourceModelsPath = __DIR__ . '/../../stubs/Models'; // Sumber stubs model di package
+            // Sumber diambil dari stubs internal package agar saat composer require awal tidak ikut ada
+            $sourceModelsPath = __DIR__ . '/../../stubs/Models'; 
             $targetModelsPath = app_path('Models');
 
             if (File::exists($sourceModelsPath)) {
@@ -77,7 +78,6 @@ class SsoInstallCommand extends Command
                 File::copyDirectory($sourceModelsPath, $targetModelsPath);
                 $this->info('Berhasil menyalin model tersentralisasi ke direktori app/Models.');
             } else {
-                // Mencegah error "path specified" jika folder stubs belum ada, buat direktori kosong secara aman
                 if (!File::exists($targetModelsPath)) {
                     File::makeDirectory($targetModelsPath, 0755, true);
                 }
