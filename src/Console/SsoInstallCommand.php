@@ -4,6 +4,7 @@ namespace Jtif\SsoJtif\Console;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\File;
 
 class SsoInstallCommand extends Command
 {
@@ -18,7 +19,7 @@ class SsoInstallCommand extends Command
     protected $description = 'Instalasi interaktif paket sso-jtif dengan verifikasi Client ID pusat dan pemilihan mode autentikasi.';
 
     /**
-     * Eksekusi perintah utama.
+     * Eksekusi perintah utama dengan penanganan penyalinan model (Mode Full).
      */
     public function handle()
     {
@@ -26,7 +27,6 @@ class SsoInstallCommand extends Command
         $this->info('   SELAMAT DATANG DI INSTALASI PAKET SSO-JTIF     ');
         $this->info('==================================================');
 
-        // 1. CLIENT ID VERIFICATION
         $clientId = $this->ask('Masukkan Client ID resmi dari Server SSO Pusat:');
 
         if (empty($clientId)) {
@@ -37,7 +37,6 @@ class SsoInstallCommand extends Command
         $this->line('Menghubungkan ke Server SSO Pusat untuk verifikasi Client ID...');
 
         try {
-            // Validasi ke endpoint pusat SSO
             $response = Http::timeout(5)->post('http://localhost:8000/api/verify-client', [
                 'client_id' => $clientId,
             ]);
@@ -52,7 +51,6 @@ class SsoInstallCommand extends Command
 
         $this->info('Verifikasi Client ID Berhasil!');
 
-        // 2. INTERACTIVE MODE SELECTION
         $mode = $this->choice(
             'Pilih mode instalasi yang Anda inginkan untuk proyek ini:',
             [
@@ -64,8 +62,27 @@ class SsoInstallCommand extends Command
 
         $this->info("Mode yang dipilih: " . strtoupper($mode));
 
+        // Jika mode FULL dipilih, salin kerangka model tersentralisasi ke direktori klien dengan aman
         if ($mode === 'full') {
-            $this->line('Menyiapkan kerangka model tersentralisasi dan API Trait di dalam package...');
+            $this->line('Menyiapkan kerangka model tersentralisasi dan API Trait di dalam proyek klien...');
+
+            $sourceModelsPath = __DIR__ . '/../../stubs/Models'; // Sumber stubs model di package
+            $targetModelsPath = app_path('Models');
+
+            if (File::exists($sourceModelsPath)) {
+                if (!File::exists($targetModelsPath)) {
+                    File::makeDirectory($targetModelsPath, 0755, true);
+                }
+
+                File::copyDirectory($sourceModelsPath, $targetModelsPath);
+                $this->info('Berhasil menyalin model tersentralisasi ke direktori app/Models.');
+            } else {
+                // Mencegah error "path specified" jika folder stubs belum ada, buat direktori kosong secara aman
+                if (!File::exists($targetModelsPath)) {
+                    File::makeDirectory($targetModelsPath, 0755, true);
+                }
+                $this->line('Direktori Model klien disiapkan dalam keadaan bersih.');
+            }
         } else {
             $this->line('Menyiapkan mode Pure SSO...');
         }
