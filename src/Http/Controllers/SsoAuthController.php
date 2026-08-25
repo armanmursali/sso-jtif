@@ -25,15 +25,16 @@ class SsoAuthController extends Controller
     }
 
     /**
-     * Menangani callback, menukar token menggunakan Http::asForm()->post, 
-     * dan menyimpan session secara terpusat di dalam package.
+     * Menangani callback, menukar token, menarik data user, dan menyediakannya untuk klien.
      */
     public function handleCallback(Request $request)
     {
         $code = $request->input('code');
 
         if (!$code) {
-            return redirect()->route('login')->with('error', 'Autentikasi SSO dibatalkan atau gagal.');
+            return [
+                'redirect' => redirect()->route('login')->with('error', 'Autentikasi SSO dibatalkan atau gagal.')
+            ];
         }
 
         $response = Http::asForm()->post('http://localhost:8000/oauth/token', [
@@ -45,14 +46,18 @@ class SsoAuthController extends Controller
         ]);
 
         if ($response->failed()) {
-            return redirect()->route('login')->with('error', 'Gagal mendapatkan token: ' . $response->json('error_description', 'Kesalahan tidak diketahui'));
+            return [
+                'redirect' => redirect()->route('login')->with('error', 'Gagal mendapatkan token: ' . $response->json('error_description', 'Kesalahan tidak diketahui'))
+            ];
         }
 
         $tokenData = $response->json();
         $accessToken = $tokenData['access_token'] ?? null;
 
         if (!$accessToken) {
-            return redirect()->route('login')->with('error', 'Access token tidak ditemukan.');
+            return [
+                'redirect' => redirect()->route('login')->with('error', 'Access token tidak ditemukan.')
+            ];
         }
 
         $userResponse = Http::withToken($accessToken)->get('http://localhost:8000/api/user', [
@@ -60,17 +65,26 @@ class SsoAuthController extends Controller
         ]);
 
         if ($userResponse->failed()) {
-            return redirect()->route('login')->with('error', 'Gagal mengambil data profil dari server SSO.');
+            return [
+                'redirect' => redirect()->route('login')->with('error', 'Gagal mengambil data profil dari server SSO.')
+            ];
         }
 
         $ssoUserData = $userResponse->json();
 
-        // Menyimpan data identitas dan token ke session secara terpusat
+        if (empty($ssoUserData)) {
+            return [
+                'redirect' => redirect()->route('login')->with('error', 'Gagal mengambil data pengguna dari SSO.')
+            ];
+        }
+
+        // Menyimpan token dan data mentah ke session secara terpusat
         session([
             'sso_user_data' => $ssoUserData,
             'sso_access_token' => $accessToken 
         ]);
 
+        // Mengembalikan data user secara utuh agar dapat dibaca oleh controller klien
         return [
             'ssoUserData' => $ssoUserData,
             'accessToken' => $accessToken,
