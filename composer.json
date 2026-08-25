@@ -1,0 +1,29 @@
+{
+    "name": "jtif/sso-jtif",
+    "description": "Package Client SSO mandiri dengan model tersentralisasi di dalam package untuk Laravel",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Senior Developer & Team",
+            "email": "developer@jtif.ac.id"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^10.0|^11.0",
+        "illuminate/http": "^10.0|^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Jtif\\SsoJtif\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Jtif\\SsoJtif\\SsoJtifServiceProvider"
+            ]
+        }
+    }
+}
